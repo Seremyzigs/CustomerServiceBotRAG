@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Customer Service RAG Visualizer</title>
+
+  <!--
+    =====================================================
+    CUSTOMER SERVICE RAG VISUALIZER
+    -----------------------------------------------------
+    Single-file educational tool to visually learn how
+    Retrieval-Augmented Generation (RAG) works for a
+    customer service bot.
+
+    Tech stack: Pure HTML + CSS + JavaScript
+    No frameworks. No APIs. Beginner-friendly.
+    =====================================================
+  -->
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      color: #38bdf8;
+    }
+
+    p {
+      color: #cbd5f5;
+      font-size: 14px;
+    }
+
+    .section {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #334155;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      background: #38bdf8;
+      color: #020617;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0ea5e9;
+    }
+
+    .output {
+      margin-top: 12px;
+      background: #020617;
+      border: 1px dashed #334155;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🤖 Customer Service RAG Visualizer</h1>
+<p>Learn how a customer support AI retrieves company knowledge before answering.</p>
+
+<!-- =====================================================
+     1. CUSTOMER KNOWLEDGE BASE
+     ===================================================== -->
+<div class="section">
+  <h2>1️⃣ Customer Support Knowledge Base</h2>
+  <p>Paste FAQs, policies, or help articles your support bot should rely on.</p>
+  <textarea id="knowledgeText" rows="6" placeholder="Example:\nRefunds are processed within 5–7 business days.\nDigital products are non-refundable.\nShipping takes 3–5 business days..."></textarea>
+</div>
+
+<!-- =====================================================
+     2. CHUNKING
+     ===================================================== -->
+<div class="section">
+  <h2>2️⃣ Break Knowledge into Chunks</h2>
+  <p>Each chunk represents one support policy or idea.</p>
+
+  <label>Chunk Size (words)</label>
+  <input id="chunkSize" type="number" value="40" />
+
+  <label>Overlap (words)</label>
+  <input id="overlap" type="number" value="10" />
+
+  <button onclick="chunkKnowledge()">Create Policy Chunks</button>
+
+  <div id="chunkOutput" class="output"></div>
+</div>
+
+<!-- =====================================================
+     3. CREATE EMBEDDINGS
+     ===================================================== -->
+<div class="section">
+  <h2>3️⃣ Create Semantic Index</h2>
+  <p>This step allows the bot to understand meaning, not just keywords.</p>
+
+  <button onclick="createEmbeddings()">Create Embeddings</button>
+
+  <div id="embeddingOutput" class="output"></div>
+</div>
+
+<!-- =====================================================
+     4. STORE KNOWLEDGE
+     ===================================================== -->
+<div class="section">
+  <h2>4️⃣ Activate Knowledge Base</h2>
+  <p>This simulates storing vectors in a production vector database.</p>
+
+  <button onclick="storeKnowledge()">Store Knowledge</button>
+
+  <div id="storeOutput" class="output"></div>
+</div>
+
+<!-- =====================================================
+     5. CUSTOMER QUESTION
+     ===================================================== -->
+<div class="section">
+  <h2>5️⃣ Customer Asks a Question</h2>
+  <textarea id="customerQuestion" rows="3" placeholder="How long does it take to get a refund?"></textarea>
+
+  <label>Top N Relevant Policies</label>
+  <input id="topN" type="number" value="3" />
+</div>
+
+<!-- =====================================================
+     6. RETRIEVAL
+     ===================================================== -->
+<div class="section">
+  <h2>6️⃣ Retrieve Relevant Context</h2>
+  <p>This is what the AI looks up before answering.</p>
+
+  <button onclick="retrievePolicies()">Retrieve Relevant Context</button>
+
+  <div id="retrievalOutput" class="output"></div>
+</div>
+
+<!-- =====================================================
+     7. GENERATE ANSWER
+     ===================================================== -->
+<div class="section">
+  <h2>7️⃣ Generate Customer Support Response</h2>
+  <p>The LLM answers strictly using the retrieved policies.</p>
+
+  <button onclick="generateResponse()">Generate Answer</button>
+
+  <div id="responseOutput" class="output"></div>
+</div>
+
+<script>
+  // =====================================================
+  // GLOBAL STATE
+  // =====================================================
+  let chunks = [];
+  let embeddings = [];
+  let retrieved = [];
+
+  // =====================================================
+  // 2. CHUNK KNOWLEDGE
+  // =====================================================
+  function chunkKnowledge() {
+    const text = document.getElementById('knowledgeText').value;
+    const size = Number(document.getElementById('chunkSize').value);
+    const overlap = Number(document.getElementById('overlap').value);
+
+    const words = text.split(/\s+/);
+    chunks = [];
+
+    for (let i = 0; i < words.length; i += size - overlap) {
+      const chunk = words.slice(i, i + size).join(' ');
+      if (chunk) chunks.push(chunk);
+    }
+
+    document.getElementById('chunkOutput').textContent =
+      chunks.map((c, i) => `Policy_${i + 1}:\n${c}`).join('\n\n');
+  }
+
+  // =====================================================
+  // 3. CREATE EMBEDDINGS (SIMULATED)
+  // =====================================================
+  function createEmbeddings() {
+    const vocabulary = [...new Set(chunks.join(' ').toLowerCase().split(/\W+/))];
+
+    embeddings = chunks.map(chunk =>
+      vocabulary.map(word => chunk.toLowerCase().includes(word) ? 1 : 0)
+    );
+
+    document.getElementById('embeddingOutput').textContent =
+      embeddings.map((e, i) => `Embedding_${i + 1}: [${e.slice(0, 10).join(', ')} ...]`).join('\n');
+  }
+
+  // =====================================================
+  // 4. STORE KNOWLEDGE
+  // =====================================================
+  function storeKnowledge() {
+    localStorage.setItem('cs_chunks', JSON.stringify(chunks));
+    localStorage.setItem('cs_embeddings', JSON.stringify(embeddings));
+
+    document.getElementById('storeOutput').textContent =
+      '✅ Customer support knowledge activated.';
+  }
+
+  // =====================================================
+  // COSINE SIMILARITY
+  // =====================================================
+  function cosineSimilarity(a, b) {
+    const dot = a.reduce((s, v, i) => s + v * b[i], 0);
+    const magA = Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+    const magB = Math.sqrt(b.reduce((s, v) => s + v * v, 0));
+    return dot / (magA * magB || 1);
+  }
+
+  // =====================================================
+  // 6. RETRIEVE RELEVANT POLICIES
+  // =====================================================
+  function retrievePolicies() {
+    const question = document.getElementById('customerQuestion').value.toLowerCase();
+    const topN = Number(document.getElementById('topN').value);
+
+    const storedChunks = JSON.parse(localStorage.getItem('cs_chunks')) || [];
+    const storedEmbeddings = JSON.parse(localStorage.getItem('cs_embeddings')) || [];
+
+    const queryVector = storedEmbeddings[0]?.map(() => question.length > 0 ? 1 : 0) || [];
+
+    retrieved = storedEmbeddings.map((vec, i) => ({
+      text: storedChunks[i],
+      score: cosineSimilarity(vec, queryVector)
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topN);
+
+    document.getElementById('retrievalOutput').textContent =
+      retrieved.map((r, i) => `Match ${i + 1} (score ${r.score.toFixed(2)}):\n${r.text}`).join('\n\n');
+  }
+
+  // =====================================================
+  // 7. GENERATE RESPONSE (MOCK LLM)
+  // =====================================================
+  function generateResponse() {
+    const question = document.getElementById('customerQuestion').value;
+
+    const context = retrieved.map((r, i) => `Policy_${i + 1}: ${r.text}`).join('\n');
+
+    const prompt = `System: You are a customer support assistant. Answer using only the approved context.\n\nCustomer Question: "${question}"\n\nApproved Context:\n${context}`;
+
+    document.getElementById('responseOutput').textContent =
+      '🧠 Prompt Sent to LLM:\n\n' + prompt + '\n\n🤖 Example Response:\nBased on our policy, refunds are processed within 5–7 business days.';
+  }
+</script>
+
+</body>
+</html>
